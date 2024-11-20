@@ -216,6 +216,20 @@ class MessagePassingModel(nn.Module):
     cutoff: float = 5.0
     max_atomic_number: int = 118  # This is overkill for most applications.
 
+    def conv_block(
+        self,
+        x2: jnp.ndarray,
+        displacements: jnp.ndarray,
+        params: dict[str, jnp.ndarray],
+    ) -> jnp.ndarray:
+        normalized_displacements = displacements / cutoff
+
+    def interaction_block(
+        self, x: jnp.ndarray, displacements: jnp.ndarray, params: dict[str, jnp.ndarray]
+    ) -> jnp.ndarray:
+        x2 = self_interaction(x, params)
+        x2 = self.conv_block(x2, displacements, params)
+
     def energy(
         self, atomic_numbers, positions, dst_idx, src_idx, batch_segments, batch_size
     ):
@@ -225,6 +239,7 @@ class MessagePassingModel(nn.Module):
         displacements = positions_src - positions_dst  # Shape (num_pairs, 3).
 
         # 2. Expand displacement vectors in basis functions.
+        # TODO(curtis): use bessel basis
         basis = e3x.nn.basis(  # Shape (num_pairs, 1, (max_degree+1)**2, num_basis_functions).
             displacements,
             num=self.num_basis_functions,
